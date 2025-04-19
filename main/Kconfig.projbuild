@@ -160,6 +160,8 @@ choice BOARD_TYPE
         bool "SenseCAP Watcher"
     config BOARD_TYPE_DOIT_S3_AIBOX
         bool "四博智联AI陪伴盒子"
+    config BOARD_TYPE_ZENO_AI_DOG
+        bool "ZENO-AI-DOG AI机器狗开发板"
 endchoice
 
 choice DISPLAY_OLED_TYPE
