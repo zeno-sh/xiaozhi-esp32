@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+idf环境：source ~/esp/esp-idf/export.sh && cd /Users/zhulinfeng/Documents/GitSpace/xiaozhi-esp32

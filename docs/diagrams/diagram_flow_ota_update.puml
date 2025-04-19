@@ -1,0 +1,44 @@
+@startuml OTA固件升级流程
+!theme plain
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+skinparam responseMessageBelowArrow true
+
+participant "Application" as App
+participant "OTA模块" as OTA
+participant "协议层" as Protocol
+participant "云端服务" as Cloud
+participant "固件服务器" as FirmwareServer
+participant "存储控制" as Storage
+participant "引导加载程序" as Boot
+
+autonumber
+
+App -> OTA: 检查新版本
+OTA -> Protocol: 发送版本查询请求
+Protocol -> Cloud: 查询最新固件信息
+Cloud --> Protocol: 返回版本信息
+Protocol --> OTA: 版本信息
+OTA -> OTA: 比较版本号
+OTA -> App: 发现新版本
+App -> App: 更新状态(kDeviceStateUpgrading)
+App -> OTA: 开始升级过程
+OTA -> Protocol: 请求下载固件
+Protocol -> Cloud: 请求固件URL
+Cloud --> Protocol: 返回固件下载地址
+Protocol --> OTA: 固件URL
+OTA -> FirmwareServer: 请求下载固件
+FirmwareServer --> OTA: 固件数据流
+OTA -> Storage: 写入固件数据
+OTA -> Storage: 验证固件完整性
+Storage --> OTA: 验证成功
+OTA -> App: 升级准备完成
+App -> App: 准备重启
+App -> Boot: 请求重启
+Boot -> Boot: 引导至新固件
+Boot -> App: 使用新固件启动
+App -> Protocol: 上报升级完成
+Protocol -> Cloud: 通知升级成功
+
+@enduml 

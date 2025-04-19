@@ -1,0 +1,63 @@
+@startuml IoT模块架构
+!theme plain
+skinparam classAttributeIconSize 0
+
+package "IoT模块" {
+  class ThingManager <<Singleton>> {
+    -things_: vector<Thing*>
+    -last_states_: map<string, string>
+    +GetInstance(): ThingManager&
+    +AddThing(Thing* thing): void
+    +GetDescriptorsJson(): string
+    +GetStatesJson(string& json, bool delta): bool
+    +Invoke(const cJSON* command): void
+  }
+  
+  abstract class Thing {
+    #name_: string
+    #properties_: PropertyList
+    #methods_: MethodList
+    +name(): string
+    +GetDescriptorJson(): string
+    +GetStateJson(): string
+    +Invoke(const cJSON* command): void
+  }
+  
+  class Battery {
+    -level_: int
+    -charging_: bool
+    +GetLevel(): int
+    +IsCharging(): bool
+  }
+  
+  class Backlight {
+    -brightness_: int
+    +SetBrightness(int): void
+    +GetBrightness(): int
+  }
+  
+  class Speaker {
+    -volume_: int
+    -muted_: bool
+    +SetVolume(int): void
+    +GetVolume(): int
+    +Mute(): void
+    +Unmute(): void
+  }
+  
+  class Lamp {
+    -on_: bool
+    -brightness_: int
+    +TurnOn(): void
+    +TurnOff(): void
+    +SetBrightness(int): void
+  }
+  
+  ThingManager o--> "0..*" Thing : manages >
+  Thing <|-- Battery
+  Thing <|-- Backlight
+  Thing <|-- Speaker
+  Thing <|-- Lamp
+}
+
+@enduml 

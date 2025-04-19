@@ -12,6 +12,7 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "protocols/protocol.cc"
             "iot/thing.cc"
             "iot/thing_manager.cc"
+            "iot/common_iot_config.cc"
             "system_info.cc"
             "application.cc"
             "ota.cc"
@@ -20,7 +21,7 @@ set(SOURCES "audio_codecs/audio_codec.cc"
             "main.cc"
             )
 
-set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing")
+set(INCLUDE_DIRS "." "display" "audio_codecs" "protocols" "audio_processing" "drivers")
 
 # 添加 IOT 相关文件
 file(GLOB IOT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/iot/things/*.cc)
@@ -134,6 +135,8 @@ elseif(CONFIG_BOARD_TYPE_XINGZHI_Cube_1_54TFT_ML307)
     set(BOARD_TYPE "xingzhi-cube-1.54tft-ml307")
 elseif(CONFIG_BOARD_TYPE_SENSECAP_WATCHER)
     set(BOARD_TYPE "sensecap-watcher")
+elseif(CONFIG_BOARD_TYPE_ZENO_AI_ROBOT)
+    set(BOARD_TYPE "zeno-ai-robot")
 elseif(CONFIG_BOARD_TYPE_DOIT_S3_AIBOX)
     set(BOARD_TYPE "doit-s3-aibox")
 elseif(CONFIG_BOARD_TYPE_ESP32_CGC)
@@ -182,6 +185,9 @@ if(CONFIG_IDF_TARGET_ESP32)
                              "led/gpio_led.cc"
                              )
 endif()
+
+# 添加驱动文件
+list(APPEND SOURCES "drivers/pcf8574.cc")
 
 idf_component_register(SRCS ${SOURCES}
                     EMBED_FILES ${LANG_SOUNDS} ${COMMON_SOUNDS}

@@ -1,0 +1,53 @@
+@startuml Thing类层次结构
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #f0f0f0
+skinparam classBorderColor #999999
+skinparam classArrowColor #666666
+
+abstract class Thing {
+  -name_: string
+  -properties_: PropertyList
+  -methods_: MethodList
+  +name(): string
+  +GetDescriptorJson(): string
+  +GetStateJson(): string
+  +Invoke(const cJSON* command): void
+}
+
+class Battery {
+  -level_: int
+  -charging_: bool
+  +GetLevel(): int
+  +IsCharging(): bool
+}
+
+class Backlight {
+  -brightness_: int
+  +SetBrightness(int): void
+  +GetBrightness(): int
+}
+
+class Speaker {
+  -volume_: int
+  -muted_: bool
+  +SetVolume(int): void
+  +GetVolume(): int
+  +Mute(): void
+  +Unmute(): void
+}
+
+class Lamp {
+  -on_: bool
+  -brightness_: int
+  +TurnOn(): void
+  +TurnOff(): void
+  +SetBrightness(int): void
+}
+
+Thing <|-- Battery
+Thing <|-- Backlight
+Thing <|-- Speaker
+Thing <|-- Lamp
+
+@enduml 

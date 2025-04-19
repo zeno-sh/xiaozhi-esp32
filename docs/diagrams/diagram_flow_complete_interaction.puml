@@ -1,0 +1,70 @@
+@startuml 完整用户交互流程
+!theme plain
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+skinparam responseMessageBelowArrow true
+
+actor 用户
+participant "ESP32设备" as Device
+participant "音频处理" as Audio
+participant "应用层" as App
+participant "协议层" as Protocol
+participant "后端云服务" as Cloud
+participant "IoT管理器" as IoT
+participant "显示控制" as Display
+
+autonumber
+
+== 设备启动与连接 ==
+Device -> App: 系统启动
+App -> Protocol: 连接网络
+Protocol -> Cloud: 建立连接
+Cloud --> Protocol: 连接确认
+Protocol --> App: 连接就绪
+
+== 语音唤醒 ==
+用户 -> Audio: "小智小智"
+Audio -> App: 检测到唤醒词
+App -> IoT: 修改LED状态(聆听中)
+App -> Display: 显示"我在听"
+IoT -> 用户: LED灯变色
+Display -> 用户: 屏幕显示状态
+
+== 语音识别与处理 ==
+用户 -> Audio: 说话内容
+Audio -> App: 音频数据流
+App -> Protocol: 音频编码发送
+Protocol -> Cloud: 语音识别请求
+Cloud -> Cloud: ASR转文本
+Cloud -> Cloud: 大模型处理
+Cloud --> Protocol: 返回文本响应
+Protocol --> App: 文本响应
+
+== 语音合成与播放 ==
+App -> Protocol: 请求TTS
+Protocol -> Cloud: TTS请求
+Cloud --> Protocol: 音频流
+Protocol --> App: 音频数据
+App -> Audio: 播放回答
+Audio -> 用户: 语音输出
+App -> Display: 显示对话内容
+Display -> 用户: 显示文本
+
+== IoT控制 ==
+Cloud -> Protocol: 控制命令
+Protocol -> App: 解析命令
+App -> IoT: Invoke(命令)
+IoT -> Device: 控制物理设备
+Device --> 用户: 物理反馈(灯光/声音)
+IoT --> App: 控制完成
+App -> Protocol: 状态更新
+Protocol -> Cloud: 同步设备状态
+
+== 返回空闲状态 ==
+Audio -> App: 播放完成
+App -> IoT: 更新LED状态(空闲)
+App -> Display: 更新显示(空闲)
+App -> App: 状态更新(kDeviceStateIdle)
+
+@enduml 

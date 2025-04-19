@@ -1,0 +1,27 @@
+{
+  "target": "esp32s3",
+  "builds": [
+    {
+      "name": "zeno-ai-robot",
+      "sdkconfig_append": [
+        "CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y",
+        "CONFIG_COMPILER_OPTIMIZATION_PERF=y",
+        "CONFIG_SPIRAM=y",
+        "CONFIG_ESP32S3_SPIRAM_SUPPORT=y",
+        "CONFIG_SPIRAM_MODE_OCT=y",
+        "CONFIG_COMPILER_WARN_ERROR_RETURN_TYPE=n",
+        "CONFIG_COMPILER_WARN_ERROR_IMPLICIT_FUNCTION_DECLARATION=n",
+        "CONFIG_COMPILER_WARN_ERROR_MAYBE_UNINITIALIZED=n",
+        "CONFIG_COMPILER_WARNINGS_AS_ERRORS=n"
+      ],
+      "cflags": [
+        "-Wno-error=stringop-overflow",
+        "-Wno-stringop-overflow"
+      ],
+      "cxxflags": [
+        "-Wno-error=stringop-overflow",
+        "-Wno-stringop-overflow"
+      ]
+    }
+  ]
+} 

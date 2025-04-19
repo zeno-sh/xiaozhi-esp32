@@ -1,0 +1,27 @@
+@startuml Thing通信流程
+!theme plain
+skinparam responseMessageBelowArrow true
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+
+participant "应用程序" as App
+participant "ThingManager" as Manager
+participant "Thing对象" as Thing
+
+autonumber
+
+App -> Manager: 创建Thing对象
+Manager -> Thing: AddThing()
+App -> Manager: 请求设备描述
+Manager -> Thing: GetDescriptorJson()
+Thing --> Manager: 返回JSON格式的描述
+Manager --> App: 返回所有设备描述
+App -> Manager: 请求设备状态
+Manager -> Thing: GetStatesJson()
+Thing --> Manager: 返回JSON格式的状态
+Manager --> App: 返回所有设备状态
+App -> Manager: 发送控制命令
+Manager -> Thing: Invoke()
+Thing --> Manager: 执行对应的方法
+
+@enduml 

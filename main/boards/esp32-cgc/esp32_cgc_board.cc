@@ -7,6 +7,7 @@
 #include "config.h"
 #include "iot/thing_manager.h"
 #include "led/single_led.h"
+#include "iot/common_iot_config.h"
 
 #include <wifi_station.h>
 #include <esp_log.h>
@@ -154,7 +155,10 @@ private:
     void InitializeIot() {
         auto& thing_manager = iot::ThingManager::GetInstance();
         thing_manager.AddThing(iot::CreateThing("Speaker"));
-        thing_manager.AddThing(iot::CreateThing("Screen"));
+        
+        // 添加小狗控制器支持
+        iot::InitializeDogControl(thing_manager);
+        ESP_LOGI(TAG, "已添加小狗控制器支持");
     }
 
 public:
