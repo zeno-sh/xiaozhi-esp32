@@ -1,0 +1,25 @@
+@startuml 小智ESP32系统架构
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+package "小智ESP32系统" {
+  [应用层\n(Application)] as App
+  [协议层\n(Protocols)] as Proto
+  [IoT管理层\n(ThingManager)] as IoT
+  [音频处理层\n(AudioProcess)] as Audio
+  [显示控制层\n(OLED/LCD控制)] as Display
+  [物理设备层\n(灯/扬声器/电池等)] as Devices
+  [网络连接\n(WiFi/4G模块)] as Network
+  [外部服务\n(云端大模型/语音服务)] as Cloud
+  
+  App --> Proto
+  App --> IoT
+  App --> Audio
+  Proto <--> Network
+  Network <--> Cloud
+  IoT <--> Devices
+  App --> Display
+}
+
+@enduml 

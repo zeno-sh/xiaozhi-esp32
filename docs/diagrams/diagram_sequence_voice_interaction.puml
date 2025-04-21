@@ -1,0 +1,29 @@
+@startuml 语音交互流程
+!theme plain
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+actor 用户
+participant "应用层" as App
+participant "协议层" as Proto
+participant "云端服务" as Cloud
+participant "IoT设备" as IoT
+
+autonumber
+
+用户 -> App: 唤醒词触发
+App -> Proto: 更改设备状态
+App -> IoT: 开始录音
+用户 -> App: 语音输入
+App -> Proto: 音频编码
+Proto -> Cloud: 发送编码后的音频
+Cloud --> Proto: 返回文本响应
+Proto --> App: 解析响应
+App -> Cloud: 请求TTS
+Cloud --> Proto: 返回音频流
+App -> IoT: 音频解码播放
+App -> IoT: 更新设备状态
+App --> 用户: 听到回答
+
+@enduml 

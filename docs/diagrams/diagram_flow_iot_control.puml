@@ -1,0 +1,37 @@
+@startuml IoT设备控制流程
+!theme plain
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+skinparam responseMessageBelowArrow true
+
+actor 用户
+participant "云端服务" as Cloud
+participant "协议层" as Protocol
+participant "Application" as App
+participant "ThingManager" as Manager
+participant "Thing设备" as Thing
+participant "物理设备" as Device
+
+autonumber
+
+用户 -> Cloud: 发送控制命令
+Cloud -> Protocol: 转发控制命令
+Protocol -> App: 解析命令
+App -> Manager: Invoke(command)
+Manager -> Manager: 查找对应设备
+Manager -> Thing: 调用设备方法
+Thing -> Thing: 解析参数
+Thing -> Device: 执行物理操作
+Device --> Thing: 操作完成
+Thing --> Manager: 返回执行结果
+Manager -> App: 操作结果
+App -> Manager: GetStatesJson()
+Manager -> Thing: GetStateJson()
+Thing --> Manager: 返回状态JSON
+Manager --> App: 返回设备状态
+App -> Protocol: 发送状态更新
+Protocol -> Cloud: 上报状态变化
+Cloud -> 用户: 通知状态已更新
+
+@enduml 
