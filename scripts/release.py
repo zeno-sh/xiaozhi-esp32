@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import zipfile
+import shutil  # 新增导入shutil模块
 
 # 切换到项目根目录
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -119,6 +120,12 @@ def release(board_type, board_config):
         print("-" * 80)
 
 if __name__ == "__main__":
+    # 新增：执行前删除build和releases目录
+    if os.path.exists("build"):
+        shutil.rmtree("build", ignore_errors=True)
+    if os.path.exists("releases"):
+        shutil.rmtree("releases", ignore_errors=True)
+    
     if len(sys.argv) > 1:
         board_configs = get_all_board_types()
         found = False
