@@ -24,15 +24,15 @@
 #define VOLUME_UP_BUTTON_GPIO   GPIO_NUM_NC
 #define VOLUME_DOWN_BUTTON_GPIO GPIO_NUM_NC
 
-// 显示屏配置 - 逆时针旋转90度
+// 显示屏配置
 #define DISPLAY_WIDTH   240
 #define DISPLAY_HEIGHT  240
-#define DISPLAY_MIRROR_X true
-#define DISPLAY_MIRROR_Y false
+#define DISPLAY_MIRROR_X false
+#define DISPLAY_MIRROR_Y true
 #define DISPLAY_SWAP_XY true
 
 // 正确设置偏移量使内容居中
-#define DISPLAY_OFFSET_X  0
+#define DISPLAY_OFFSET_X  80
 #define DISPLAY_OFFSET_Y  0
 
 #define DISPLAY_DC_GPIO     GPIO_NUM_43
@@ -60,4 +60,4 @@ typedef enum {
     IO_PIN_MAX
 } io_expander_pin_t;
 
-#endif // _BOARD_CONFIG_H_ 
+#endif // _BOARD_CONFIG_H_
