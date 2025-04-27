@@ -1,10 +1,10 @@
 menu "Xiaozhi Assistant"
 
-config OTA_VERSION_URL
-    string "OTA Version URL"
+config OTA_URL
+    string "Default OTA URL"
     default "https://api.tenclass.net/xiaozhi/ota/"
     help
-        The application will access this URL to check for updates.
+        The application will access this URL to check for new firmwares and server address.
 
 
 choice
@@ -22,32 +22,6 @@ choice
     config LANGUAGE_JA_JP
         bool "Japanese"
 endchoice
-
-
-choice CONNECTION_TYPE
-    prompt "Connection Type"
-    default CONNECTION_TYPE_MQTT_UDP
-    help
-        网络数据传输协议
-    config CONNECTION_TYPE_MQTT_UDP
-        bool "MQTT + UDP"
-    config CONNECTION_TYPE_WEBSOCKET
-        bool "Websocket"
-endchoice
-
-config WEBSOCKET_URL
-    depends on CONNECTION_TYPE_WEBSOCKET
-    string "Websocket URL"
-    default "wss://api.tenclass.net/xiaozhi/v1/"
-    help
-        Communication with the server through websocket after wake up.
-
-config WEBSOCKET_ACCESS_TOKEN
-    depends on CONNECTION_TYPE_WEBSOCKET
-    string "Websocket Access Token"
-    default "test-token"
-    help
-        Access token for websocket communication.
 
 choice BOARD_TYPE
     prompt "Board Type"
@@ -230,11 +204,22 @@ choice DISPLAY_ESP32S3_KORVO2_V3
         bool "ILI9341, 分辨率240*320"
 endchoice
 
-config USE_WECHAT_MESSAGE_STYLE
-    bool "使用微信聊天界面风格"
-    default n
+choice MESSAGE_STYLE_TYPE
+    prompt "LCD界面"
+    default MESSAGE_STYLE_NORMAL
     help
-        使用微信聊天界面风格
+        选择消息显示的风格-GIF目前测试了ESP32S3N16R8+240*240,
+        暗黑模式效果更佳
+
+    config MESSAGE_STYLE_NORMAL
+        bool "默认"
+    config USE_WECHAT_MESSAGE_STYLE
+        bool "微信聊天"
+    config USE_GIF_EMOTION_STYLE
+        bool "GIF表情"
+        select LV_USE_GIF
+        select LV_GIF_CACHE_DECODE_DATA
+endchoice
 
 config USE_WAKE_WORD_DETECT
     bool "启用唤醒词检测"
