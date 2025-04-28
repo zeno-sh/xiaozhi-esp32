@@ -25,7 +25,7 @@ LV_IMG_DECLARE(anger);
 #endif
 
 // Color definitions for dark theme
-#define DARK_BACKGROUND_COLOR       lv_color_hex(0x121212)     // Dark background
+#define DARK_BACKGROUND_COLOR       lv_color_hex(0x000000)     // Dark background
 #define DARK_TEXT_COLOR             lv_color_white()           // White text
 #define DARK_CHAT_BACKGROUND_COLOR  lv_color_hex(0x1E1E1E)     // Slightly lighter than background
 #define DARK_USER_BUBBLE_COLOR      lv_color_hex(0x1A6C37)     // Dark green
@@ -86,7 +86,7 @@ static const ThemeColors LIGHT_THEME = {
 };
 
 // Current theme - initialize based on default config
-static ThemeColors current_theme = LIGHT_THEME;
+static ThemeColors current_theme = DARK_THEME;
 
 
 LV_FONT_DECLARE(font_awesome_30_4);
@@ -587,7 +587,8 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_size(emotion_gif, gif_size, gif_size);
     lv_obj_set_style_border_width(emotion_gif, 0, 0);
     lv_obj_set_style_bg_opa(emotion_gif, LV_OPA_TRANSP, 0);
-    lv_obj_center(emotion_gif);
+    // 向上移动GIF，第四个参数是Y轴偏移，负值表示向上移动
+    lv_obj_align(emotion_gif, LV_ALIGN_CENTER, 0, -30);
     lv_gif_set_src(emotion_gif, &staticstate);
 
     chat_message_label_ = lv_label_create(overlay_container);
@@ -602,7 +603,7 @@ void LcdDisplay::SetupUI() {
     lv_obj_set_style_bg_color(chat_message_label_, lv_color_black(), 0);
     lv_obj_set_style_pad_ver(chat_message_label_, 5, 0);
 
-    lv_obj_align(chat_message_label_, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_align(chat_message_label_, LV_ALIGN_BOTTOM_MID, 0, -20);
 #else
     /* Content */
     content_ = lv_obj_create(container_);
