@@ -30,7 +30,6 @@ public:
 class ZenoAiDogBoard : public WifiBoard {
 private:
     i2c_master_bus_handle_t i2c_bus_;
-    i2c_master_bus_handle_t io_expander_i2c_bus_;
     Button boot_button_;
     Display* display_;
 
@@ -50,27 +49,6 @@ private:
             },
         };
         ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_cfg, &i2c_bus_));
-    }
-
-    // I2C初始化（IO扩展芯片）
-    void InitializeIOExpanderI2c() {
-        // 初始化I2C总线
-        i2c_master_bus_config_t i2c_bus_cfg = {
-            .i2c_port = I2C_NUM_1,
-            .sda_io_num = IO_EXPANDER_I2C_SDA_PIN,
-            .scl_io_num = IO_EXPANDER_I2C_SCL_PIN,
-            .clk_source = I2C_CLK_SRC_DEFAULT,
-            .glitch_ignore_cnt = 7,
-            .intr_priority = 0,
-            .trans_queue_depth = 0,
-            .flags = {
-                .enable_internal_pullup = 1,
-            },
-        };
-        ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_cfg, &io_expander_i2c_bus_));
-        
-        // 初始化IO扩展芯片（HT8574）
-        ESP_LOGI(TAG, "IO扩展芯片初始化成功");
     }
 
     // SPI初始化
@@ -141,13 +119,12 @@ private:
         auto& thing_manager = iot::ThingManager::GetInstance();
         thing_manager.AddThing(iot::CreateThing("Speaker"));
         thing_manager.AddThing(iot::CreateThing("Screen"));
-        // thing_manager.AddThing(iot::CreateThing("AiDog"));
+        thing_manager.AddThing(iot::CreateThing("DogServo"));
     }
 
 public:
     ZenoAiDogBoard() : boot_button_(BOOT_BUTTON_GPIO) {
         InitializeI2c();
-        InitializeIOExpanderI2c();
         InitializeSpi();
         InitializeDisplay();
         InitializeButtons();

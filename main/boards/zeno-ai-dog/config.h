@@ -2,6 +2,7 @@
 #define _BOARD_CONFIG_H_
 
 #include <driver/gpio.h>
+#include <driver/uart.h>
 
 // 音频配置
 #define AUDIO_INPUT_SAMPLE_RATE  16000
@@ -44,20 +45,27 @@
 #define DISPLAY_BACKLIGHT_PIN GPIO_NUM_46
 #define DISPLAY_BACKLIGHT_OUTPUT_INVERT false
 
-// IO扩展芯片配置（PCF8574）
-#define IO_EXPANDER_I2C_SDA_PIN GPIO_NUM_48
-#define IO_EXPANDER_I2C_SCL_PIN GPIO_NUM_38
-#define IO_EXPANDER_I2C_ADDR    0x38
+// 串口配置（用于控制舵机）
+#define UART_SERVO_TXD GPIO_NUM_48
+#define UART_SERVO_RXD GPIO_NUM_38
+#define UART_SERVO_RTS (-1)
+#define UART_SERVO_CTS (-1)
 
-// IO扩展芯片引脚定义
+#define SERVO_UART_PORT_NUM      UART_NUM_1
+#define SERVO_UART_BAUD_RATE     (115200)
+#define SERVO_BUF_SIZE           (1024)
+
+// 舵机控制相关定义
+#define SERVO_ANGLE_MIN 0
+#define SERVO_ANGLE_MAX 180
+
+// 舵机ID定义
 typedef enum {
-    IO_PIN_SERVO_REAR_LEFT  = 0,  // P0: 后左舵机
-    IO_PIN_SERVO_FRONT_LEFT = 1,  // P1: 前左舵机
-    IO_PIN_LED_FLOW_1       = 2,  // P2: 流水灯1
-    IO_PIN_LED_FLOW_2       = 3,  // P3: 流水灯2
-    IO_PIN_SERVO_REAR_RIGHT = 4,  // P4: 后右舵机
-    IO_PIN_SERVO_FRONT_RIGHT = 5, // P5: 前右舵机
-    IO_PIN_MAX
-} io_expander_pin_t;
+    SERVO_LEFT_FRONT = 0,   // 左前脚
+    SERVO_LEFT_REAR,        // 左后脚
+    SERVO_RIGHT_FRONT,      // 右前脚
+    SERVO_RIGHT_REAR,       // 右后脚
+    SERVO_MAX
+} servo_id_t;
 
 #endif // _BOARD_CONFIG_H_
