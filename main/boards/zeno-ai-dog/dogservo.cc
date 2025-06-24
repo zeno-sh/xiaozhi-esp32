@@ -1,6 +1,6 @@
 /*
-    zeno-ai-dog 的舵机控制
-    通过串口发送命令控制四个足部舵机
+    zeno-ai-dog 的LED灯光控制
+    通过串口发送命令控制流水灯
 */
 
 #include "sdkconfig.h"
@@ -14,92 +14,94 @@
 
 #include "boards/zeno-ai-dog/config.h"
 
-#define TAG "DogServo"
+#define TAG "DogLED"
 
-// 定义固定的UART参数，与用户hello world代码保持一致
-#define UART_NUM        UART_NUM_1
+// 定义固定的UART参数
+#define UART_NUM        UART_NUM_2
 #define TXD_PIN         GPIO_NUM_48
 #define RXD_PIN         GPIO_NUM_38
 #define UART_BAUD_RATE  19200
 #define BUF_SIZE        256
 
-// 协议常量
-#define FRAME_HEADER    0xAA
-#define CMD_SERVO       0x01
-#define CMD_LED1        0x02
-#define CMD_LED2        0x03
-#define SERVO_DATA_LEN  6    // cmd(1) + data(4) + checksum(1)
-#define LED_DATA_LEN    16   // cmd(1) + data(15) + checksum(1)
-
 namespace iot {
 
-class DogServo : public Thing {
+class DogLED : public Thing {
 private:
-    // 存储四个舵机的当前角度
-    uint8_t servo_angles_[4] = {90, 90, 90, 90}; // LF, RF, LR, RR
-
-    // 发送流水灯控制命令
-    void SendLedCommand(uint8_t cmd, uint8_t r1, uint8_t g1, uint8_t b1, 
-                       uint8_t r2, uint8_t g2, uint8_t b2,
-                       uint8_t r3, uint8_t g3, uint8_t b3,
-                       uint8_t r4, uint8_t g4, uint8_t b4,
-                       uint8_t r5, uint8_t g5, uint8_t b5) {
-        // 构建协议帧
-        uint8_t frame[18];
-        frame[0] = FRAME_HEADER;        // 帧头 0xAA
-        frame[1] = LED_DATA_LEN;        // 数据长度 16
-        frame[2] = cmd;                 // 命令 0x02 或 0x03
-        frame[3] = r1; frame[4] = g1; frame[5] = b1;   // LED1 RGB
-        frame[6] = r2; frame[7] = g2; frame[8] = b2;   // LED2 RGB
-        frame[9] = r3; frame[10] = g3; frame[11] = b3; // LED3 RGB
-        frame[12] = r4; frame[13] = g4; frame[14] = b4; // LED4 RGB
-        frame[15] = r5; frame[16] = g5; frame[17] = b5; // LED5 RGB
+    // 发送LED命令
+    void SendLedCommand(uint8_t cmd, uint8_t r, uint8_t g, uint8_t b) {
+        uint8_t frame[19];
+        frame[0] = 0xAA;  // 帧头
+        frame[1] = 17;    // 数据长度
+        frame[2] = cmd;   // 命令
+        
+        // 5个LED设置相同颜色 - 协议顺序是BRG（蓝红绿）
+        for (int i = 0; i < 5; i++) {
+            frame[3 + i*3] = b;     // B (蓝色)
+            frame[4 + i*3] = r;     // R (红色)  
+            frame[5 + i*3] = g;     // G (绿色)
+        }
         
         // 计算校验：数据长度 + 命令 + 数据字节的异或
         uint8_t checksum = frame[1] ^ frame[2];
         for (int i = 3; i < 18; i++) {
             checksum ^= frame[i];
         }
+        frame[18] = checksum;
         
-        // 发送帧头到数据部分
-        uart_write_bytes(UART_NUM, frame, 18);
-        // 发送校验码
-        uart_write_bytes(UART_NUM, &checksum, 1);
+        // 发送命令
+        uart_write_bytes(UART_NUM, frame, sizeof(frame));
+        ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(1000)));
         
-        ESP_LOGI(TAG, "发送灯光命令: CMD=0x%02X, 校验=0x%02X", cmd, checksum);
+        // 打印发送的串口数据（十六进制格式）
+        ESP_LOGI(TAG, "发送串口数据 (十六进制):");
+        char hex_str[256] = {0};
+        for (int i = 0; i < sizeof(frame); i++) {
+            char temp[4];
+            sprintf(temp, "%02X ", frame[i]);
+            strcat(hex_str, temp);
+        }
+        ESP_LOGI(TAG, "%s", hex_str);
+        
+        const char* led_name = (cmd == 0x02) ? "1号灯" : "2号灯";
+        ESP_LOGI(TAG, "%s命令发送完成 - BRG(%d,%d,%d)", led_name, b, r, g);
     }
 
-    // 发送二进制协议命令
-    void SendServoCommand(uint8_t lf_angle, uint8_t rf_angle, uint8_t lr_angle, uint8_t rr_angle) {
-        // 构建协议帧
-        uint8_t frame[7];
-        frame[0] = FRAME_HEADER;        // 帧头 0xAA
-        frame[1] = SERVO_DATA_LEN;      // 数据长度 6
-        frame[2] = CMD_SERVO;           // 命令 0x01
-        frame[3] = lf_angle;            // 前左舵机角度
-        frame[4] = rf_angle;            // 前右舵机角度
-        frame[5] = lr_angle;            // 后左舵机角度
-        frame[6] = rr_angle;            // 后右舵机角度
+    // 发送舵机命令
+    void SendServoCommand(uint8_t front_left, uint8_t front_right, uint8_t rear_left, uint8_t rear_right) {
+        uint8_t frame[8];
+        frame[0] = 0xAA;        // 帧头
+        frame[1] = 0x06;        // 数据长度 (1+4+1=6)
+        frame[2] = 0x01;        // 舵机命令
+        frame[3] = front_left;  // 前左舵机角度
+        frame[4] = front_right; // 前右舵机角度
+        frame[5] = rear_left;   // 后左舵机角度
+        frame[6] = rear_right;  // 后右舵机角度
         
         // 计算校验：数据长度 + 命令 + 数据字节的异或
         uint8_t checksum = frame[1] ^ frame[2] ^ frame[3] ^ frame[4] ^ frame[5] ^ frame[6];
+        frame[7] = checksum;
         
-        // 发送帧头到数据部分
-        uart_write_bytes(UART_NUM, frame, 7);
-        // 发送校验码
-        uart_write_bytes(UART_NUM, &checksum, 1);
+        // 发送命令
+        uart_write_bytes(UART_NUM, frame, sizeof(frame));
+        ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(1000)));
         
-        // 更新存储的角度值
-        servo_angles_[0] = lf_angle;
-        servo_angles_[1] = rf_angle;
-        servo_angles_[2] = lr_angle;
-        servo_angles_[3] = rr_angle;
+        // 打印发送的串口数据（十六进制格式）
+        ESP_LOGI(TAG, "发送舵机数据 (十六进制):");
+        char hex_str[64] = {0};
+        for (int i = 0; i < sizeof(frame); i++) {
+            char temp[4];
+            sprintf(temp, "%02X ", frame[i]);
+            strcat(hex_str, temp);
+        }
+        ESP_LOGI(TAG, "%s", hex_str);
         
-        ESP_LOGI(TAG, "发送舵机命令: LF=%d, RF=%d, LR=%d, RR=%d, 校验=0x%02X", 
-                 lf_angle, rf_angle, lr_angle, rr_angle, checksum);
+        ESP_LOGI(TAG, "舵机命令发送完成 - 前左:%d° 前右:%d° 后左:%d° 后右:%d°", 
+                front_left, front_right, rear_left, rear_right);
     }
 
-    void InitializeServoUart() {
+    void InitializeLedUart() {
+        uart_driver_delete(UART_NUM);
+        
         uart_config_t uart_config = {
             .baud_rate = UART_BAUD_RATE,
             .data_bits = UART_DATA_8_BITS,
@@ -108,152 +110,47 @@ private:
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
             .source_clk = UART_SCLK_DEFAULT,
         };
-        int intr_alloc_flags = 0;
 
-        ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
+        ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUF_SIZE * 2, 0, 0, NULL, 0));
         ESP_ERROR_CHECK(uart_param_config(UART_NUM, &uart_config));
         ESP_ERROR_CHECK(uart_set_pin(UART_NUM, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
-        ESP_LOGI(TAG, "串口初始化完成：TX=GPIO%d, RX=GPIO%d", TXD_PIN, RXD_PIN);
+        ESP_LOGI(TAG, "LED串口初始化成功");
     }
 
 public:
-    DogServo() : Thing("DogServo", "AI小狗的舵机控制") {
-        InitializeServoUart();
+    DogLED() : Thing("DogLED", "AI小狗的LED灯光控制") {
+        InitializeLedUart();
 
-        // 定义设备可以被远程执行的指令
-        methods_.AddMethod("站立", "让小狗站立", ParameterList(), [this](const ParameterList& parameters) {
-            // 左前45度，左后45度，右前135度，右后135度
-            SendServoCommand(45, 135, 45, 135);
+        // 语音命令
+        methods_.AddMethod("打开灯光", "打开1号LED灯带", ParameterList(), [this](const ParameterList& parameters) {
+            SendLedCommand(0x02, 255, 255, 255);
+            SendLedCommand(0x03, 255, 255, 255);
         });
 
-        methods_.AddMethod("坐下", "让小狗坐下", ParameterList(), [this](const ParameterList& parameters) {
-            // 所有舵机90度
-            SendServoCommand(90, 90, 90, 90);
-        });
-        
-        methods_.AddMethod("摇尾", "让小狗摇尾巴", ParameterList(), [this](const ParameterList& parameters) {
-            // 后腿左右摆动
-            SendServoCommand(servo_angles_[0], servo_angles_[1], 70, 110);
-            vTaskDelay(pdMS_TO_TICKS(500));
-            SendServoCommand(servo_angles_[0], servo_angles_[1], 110, 70);
-            vTaskDelay(pdMS_TO_TICKS(500));
-            SendServoCommand(servo_angles_[0], servo_angles_[1], 90, 90);
+        methods_.AddMethod("关闭灯光", "关闭1号LED灯带", ParameterList(), [this](const ParameterList& parameters) {
+            SendLedCommand(0x02, 0, 0, 0);
+            SendLedCommand(0x03, 0, 0, 0);
         });
 
-        methods_.AddMethod("前进", "向前走", ParameterList(), [this](const ParameterList& parameters) {
-            // 前进动作序列
-            SendServoCommand(60, 120, servo_angles_[2], servo_angles_[3]);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            SendServoCommand(servo_angles_[0], servo_angles_[1], 60, 120);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            SendServoCommand(90, 90, servo_angles_[2], servo_angles_[3]);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            SendServoCommand(servo_angles_[0], servo_angles_[1], 90, 90);
+        // 舵机控制语音命令
+        methods_.AddMethod("休息", "让AI狗进入休息状态，所有舵机归位", ParameterList(), [this](const ParameterList& parameters) {
+            SendServoCommand(0, 0, 0, 0);  // 所有舵机设为0度（初始化状态）
         });
 
-        methods_.AddMethod("后退", "向后退", ParameterList(), [this](const ParameterList& parameters) {
-            // 后退动作序列
-            SendServoCommand(servo_angles_[0], servo_angles_[1], 120, 60);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            SendServoCommand(120, 60, servo_angles_[2], servo_angles_[3]);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            SendServoCommand(servo_angles_[0], servo_angles_[1], 90, 90);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            SendServoCommand(90, 90, servo_angles_[2], servo_angles_[3]);
-        });
-
-        methods_.AddMethod("左转", "向左转", ParameterList(), [this](const ParameterList& parameters) {
-            // 左转动作序列
-            SendServoCommand(120, servo_angles_[1], 120, servo_angles_[3]);
-            vTaskDelay(pdMS_TO_TICKS(300));
-            SendServoCommand(servo_angles_[0], 120, servo_angles_[2], 120);
-            vTaskDelay(pdMS_TO_TICKS(300));
-            SendServoCommand(90, 90, 90, 90);
-        });
-
-        methods_.AddMethod("右转", "向右转", ParameterList(), [this](const ParameterList& parameters) {
-            // 右转动作序列
-            SendServoCommand(servo_angles_[0], 60, servo_angles_[2], 60);
-            vTaskDelay(pdMS_TO_TICKS(300));
-            SendServoCommand(60, servo_angles_[1], 60, servo_angles_[3]);
-            vTaskDelay(pdMS_TO_TICKS(300));
-            SendServoCommand(90, 90, 90, 90);
-        });
-
-        methods_.AddMethod("休息", "让小狗休息，所有舵机恢复默认角度", ParameterList(), [this](const ParameterList& parameters) {
-            // 所有舵机恢复90度默认位置
-            SendServoCommand(90, 90, 90, 90);
-            ESP_LOGI(TAG, "小狗进入休息状态，所有舵机已恢复默认角度");
-        });
-
-        methods_.AddMethod("打开灯光", "打开所有LED灯，显示白色", ParameterList(), [this](const ParameterList& parameters) {
-            // 流水灯1和流水灯2都设置为白色（255,255,255）
-            SendLedCommand(CMD_LED1, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255);
-            SendLedCommand(CMD_LED2, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255);
-            ESP_LOGI(TAG, "所有灯光已打开");
-        });
-
-        methods_.AddMethod("关闭灯光", "关闭所有LED灯", ParameterList(), [this](const ParameterList& parameters) {
-            // 流水灯1和流水灯2都设置为黑色（0,0,0）
-            SendLedCommand(CMD_LED1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            SendLedCommand(CMD_LED2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            ESP_LOGI(TAG, "所有灯光已关闭");
-        });
-
-        methods_.AddMethod("流水灯", "播放彩虹流水灯效果", ParameterList(), [this](const ParameterList& parameters) {
-            ESP_LOGI(TAG, "开始播放流水灯效果");
-            
-            // 彩虹色序列：红、橙、黄、绿、蓝、靛、紫
-            uint8_t colors[7][3] = {
-                {255, 0, 0},    // 红
-                {255, 127, 0},  // 橙
-                {255, 255, 0},  // 黄
-                {0, 255, 0},    // 绿
-                {0, 0, 255},    // 蓝
-                {75, 0, 130},   // 靛
-                {148, 0, 211}   // 紫
-            };
-            
-            // 播放10个循环的流水灯效果
-            for (int cycle = 0; cycle < 10; cycle++) {
-                for (int offset = 0; offset < 7; offset++) {
-                    // 流水灯1
-                    SendLedCommand(CMD_LED1, 
-                        colors[(offset + 0) % 7][0], colors[(offset + 0) % 7][1], colors[(offset + 0) % 7][2],
-                        colors[(offset + 1) % 7][0], colors[(offset + 1) % 7][1], colors[(offset + 1) % 7][2],
-                        colors[(offset + 2) % 7][0], colors[(offset + 2) % 7][1], colors[(offset + 2) % 7][2],
-                        colors[(offset + 3) % 7][0], colors[(offset + 3) % 7][1], colors[(offset + 3) % 7][2],
-                        colors[(offset + 4) % 7][0], colors[(offset + 4) % 7][1], colors[(offset + 4) % 7][2]);
-                    
-                    // 流水灯2
-                    SendLedCommand(CMD_LED2, 
-                        colors[(offset + 2) % 7][0], colors[(offset + 2) % 7][1], colors[(offset + 2) % 7][2],
-                        colors[(offset + 3) % 7][0], colors[(offset + 3) % 7][1], colors[(offset + 3) % 7][2],
-                        colors[(offset + 4) % 7][0], colors[(offset + 4) % 7][1], colors[(offset + 4) % 7][2],
-                        colors[(offset + 5) % 7][0], colors[(offset + 5) % 7][1], colors[(offset + 5) % 7][2],
-                        colors[(offset + 6) % 7][0], colors[(offset + 6) % 7][1], colors[(offset + 6) % 7][2]);
-                    
-                    vTaskDelay(pdMS_TO_TICKS(150)); // 每150ms切换一次
-                }
-            }
-            
-            // 流水灯效果结束后关闭所有灯
-            SendLedCommand(CMD_LED1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            SendLedCommand(CMD_LED2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            ESP_LOGI(TAG, "流水灯效果播放完成");
+        methods_.AddMethod("站起来", "让AI狗站立起来", ParameterList(), [this](const ParameterList& parameters) {
+            SendServoCommand(90, 90, 90, 90);  // 所有舵机设为90度（垂直状态）
         });
     }
 };
 
-// 确保DogServo类的正确注册
-static iot::Thing* CreateDogServo() {
-    return new iot::DogServo();
+// 注册Thing类型
+static iot::Thing* CreateDogLED() {
+    return new iot::DogLED();
 }
 
-// 注册Thing类型，确保名称与ThingManager::AddThing中的参数匹配
-static bool RegisterDogServoHelper = []() {
-    RegisterThing("DogServo", CreateDogServo);
+static bool RegisterDogLEDHelper = []() {
+    RegisterThing("DogLED", CreateDogLED);
     return true;
 }();
 
