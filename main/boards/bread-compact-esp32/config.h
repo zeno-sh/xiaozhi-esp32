@@ -33,6 +33,9 @@
 #define ASR_BUTTON_GPIO         GPIO_NUM_19
 #define BUILTIN_LED_GPIO        GPIO_NUM_2
 
+#define ML307_RX_PIN            GPIO_NUM_16
+#define ML307_TX_PIN            GPIO_NUM_17
+
 #define DISPLAY_SDA_PIN GPIO_NUM_4
 #define DISPLAY_SCL_PIN GPIO_NUM_15
 #define DISPLAY_WIDTH   128
@@ -47,5 +50,9 @@
 
 #define DISPLAY_MIRROR_X true
 #define DISPLAY_MIRROR_Y true
+
+
+// A MCP Test: Control a lamp
+#define LAMP_GPIO GPIO_NUM_18
 
 #endif // _BOARD_CONFIG_H_

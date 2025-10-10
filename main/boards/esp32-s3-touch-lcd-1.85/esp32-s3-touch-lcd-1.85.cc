@@ -1,11 +1,10 @@
 #include "wifi_board.h"
-#include "audio_codecs/no_audio_codec.h"
+#include "codecs/no_audio_codec.h"
 #include "display/lcd_display.h"
 #include "system_reset.h"
 #include "application.h"
 #include "button.h"
 #include "config.h"
-#include "iot/thing_manager.h"
 
 #include <esp_log.h>
 #include "i2c_device.h"
@@ -23,9 +22,6 @@
 #define LCD_OPCODE_WRITE_CMD        (0x02ULL)
 #define LCD_OPCODE_READ_CMD         (0x0BULL)
 #define LCD_OPCODE_WRITE_COLOR      (0x32ULL)
-
-LV_FONT_DECLARE(font_puhui_16_4);
-LV_FONT_DECLARE(font_awesome_16_4);
 
 static const st77916_lcd_init_cmd_t vendor_specific_init_new[] = {
     {0xF0, (uint8_t []){0x28}, 1, 0},
@@ -220,6 +216,9 @@ private:
     esp_io_expander_handle_t io_expander = NULL;
     LcdDisplay* display_;
     button_handle_t boot_btn, pwr_btn;
+    button_driver_t* boot_btn_driver_ = nullptr;
+    button_driver_t* pwr_btn_driver_ = nullptr;
+    static CustomBoard* instance_;
 
     void InitializeI2c() {
         // Initialize I2C peripheral
@@ -355,12 +354,7 @@ private:
         esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
 
         display_ = new SpiLcdDisplay(panel_io, panel,
-                                    DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY,
-                                    {
-                                        .text_font = &font_puhui_16_4,
-                                        .icon_font = &font_awesome_16_4,
-                                        .emoji_font = font_emoji_64_init(),
-                                    });
+                                    DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
     }
  
     void InitializeButtonsCustom() {
@@ -374,23 +368,21 @@ private:
         gpio_set_level(PWR_Control_PIN, true); 
     }
     void InitializeButtons() {
+        instance_ = this;
         InitializeButtonsCustom();
-        button_config_t btns_config = {
-            .type = BUTTON_TYPE_CUSTOM,
+
+        // Boot Button
+        button_config_t boot_btn_config = {
             .long_press_time = 2000,
-            .short_press_time = 50,
-            .custom_button_config = {
-                .active_level = 0,
-                .button_custom_init = nullptr,
-                .button_custom_get_key_value = [](void *param) -> uint8_t {
-                    return gpio_get_level(BOOT_BUTTON_GPIO);
-                },
-                .button_custom_deinit = nullptr,
-                .priv = this,
-            },
+            .short_press_time = 0
         };
-        boot_btn = iot_button_create(&btns_config);
-        iot_button_register_cb(boot_btn, BUTTON_SINGLE_CLICK, [](void* button_handle, void* usr_data) {
+        boot_btn_driver_ = (button_driver_t*)calloc(1, sizeof(button_driver_t));
+        boot_btn_driver_->enable_power_save = false;
+        boot_btn_driver_->get_key_level = [](button_driver_t *button_driver) -> uint8_t {
+            return !gpio_get_level(BOOT_BUTTON_GPIO);
+        };
+        ESP_ERROR_CHECK(iot_button_create(&boot_btn_config, boot_btn_driver_, &boot_btn));
+        iot_button_register_cb(boot_btn, BUTTON_SINGLE_CLICK, nullptr, [](void* button_handle, void* usr_data) {
             auto self = static_cast<CustomBoard*>(usr_data);
             auto& app = Application::GetInstance();
             if (app.GetDeviceState() == kDeviceStateStarting && !WifiStation::GetInstance().IsConnected()) {
@@ -398,24 +390,19 @@ private:
             }
             app.ToggleChatState();
         }, this);
-        iot_button_register_cb(boot_btn, BUTTON_LONG_PRESS_START, [](void* button_handle, void* usr_data) {
-            // 长按无处理
-        }, this);
 
-        btns_config.long_press_time = 5000;
-        btns_config.custom_button_config.button_custom_get_key_value = [](void *param) -> uint8_t {
-            return gpio_get_level(PWR_BUTTON_GPIO);
+        // Power Button
+        button_config_t pwr_btn_config = {
+            .long_press_time = 5000,
+            .short_press_time = 0
         };
-        pwr_btn = iot_button_create(&btns_config);
-        iot_button_register_cb(pwr_btn, BUTTON_SINGLE_CLICK, [](void* button_handle, void* usr_data) {
-            // auto self = static_cast<CustomBoard*>(usr_data);                                     // 以下程序实现供用户参考 ，实现单击pwr按键调整亮度               
-            // if(self->GetBacklight()->brightness() > 1)                                           // 如果亮度不为0
-            //     self->GetBacklight()->SetBrightness(1);                                          // 设置亮度为1         
-            // else
-            //     self->GetBacklight()->RestoreBrightness();                                       // 恢复原本亮度
-            // 短按无处理
-        }, this);
-        iot_button_register_cb(pwr_btn, BUTTON_LONG_PRESS_START, [](void* button_handle, void* usr_data) {
+        pwr_btn_driver_ = (button_driver_t*)calloc(1, sizeof(button_driver_t));
+        pwr_btn_driver_->enable_power_save = false;
+        pwr_btn_driver_->get_key_level = [](button_driver_t *button_driver) -> uint8_t {
+            return !gpio_get_level(PWR_BUTTON_GPIO);
+        };
+        ESP_ERROR_CHECK(iot_button_create(&pwr_btn_config, pwr_btn_driver_, &pwr_btn));
+        iot_button_register_cb(pwr_btn, BUTTON_LONG_PRESS_START, nullptr, [](void* button_handle, void* usr_data) {
             auto self = static_cast<CustomBoard*>(usr_data);
             if(self->GetBacklight()->brightness() > 0) {
                 self->GetBacklight()->SetBrightness(0);
@@ -428,14 +415,6 @@ private:
         }, this);
     }
 
-
-    // 物联网初始化，添加对 AI 可见设备
-    void InitializeIot() {
-        auto& thing_manager = iot::ThingManager::GetInstance();
-        thing_manager.AddThing(iot::CreateThing("Speaker"));
-        thing_manager.AddThing(iot::CreateThing("Screen"));
-    }
-
 public:
     CustomBoard() {   
         InitializeI2c();
@@ -443,7 +422,6 @@ public:
         InitializeSpi();
         Initializest77916Display();
         InitializeButtons();
-        InitializeIot();
         GetBacklight()->RestoreBrightness();
     }
 
@@ -465,3 +443,5 @@ public:
 };
 
 DECLARE_BOARD(CustomBoard);
+
+CustomBoard* CustomBoard::instance_ = nullptr;

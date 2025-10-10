@@ -1,31 +1,22 @@
-# 编译配置命令
+# 使用说明 
 
-**配置编译目标为 ESP32S3：**
 
-```bash
-idf.py set-target esp32s3
-```
-
-**打开 menuconfig：**
+**编译**
 
 ```bash
-idf.py menuconfig
+python ./scripts/release.py m5stack-core-s3
 ```
 
-**选择板子：**
+如需手动编译，请参考 `m5stack-core-s3/config.json` 修改 menuconfig 对应选项。
 
-```
-Xiaozhi Assistant -> Board Type -> M5Stack CoreS3
-```
-
-**修改 psram 配置：**
-
-```
-Component config -> ESP PSRAM -> SPI RAM config -> Mode (QUAD/OCT) -> Quad Mode PSRAM
-```
-
-**编译：**
+**烧录**
 
 ```bash
-idf.py build
+idf.py flash
 ```
+
+> [!NOTE]
+> 进入下载模式：长按复位按键(约3秒)，直至内部指示灯亮绿色，松开按键。
+
+
+ 
